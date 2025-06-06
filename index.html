@@ -1,24 +1,44 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Control Peltier BLE</title>
+  <title>Control Enfriador de Médula</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: Arial; text-align: center; background: #f5f5f5; padding: 40px; }
-    button {
-      padding: 15px 30px; font-size: 18px; margin: 10px;
-      border-radius: 10px; border: none; cursor: pointer;
+    body { font-family: Arial; background: #f0f0f0; padding: 30px; text-align: center; }
+    h1 { margin-bottom: 40px; }
+    input[type=range] {
+      width: 80%;
+      margin: 20px 0;
     }
-    .cold { background-color: #4da6ff; }
-    .hot { background-color: #ff4d4d; }
-    .off { background-color: #bbb; }
+    .label {
+      font-size: 18px;
+      margin-top: 10px;
+    }
+    button {
+      padding: 12px 25px;
+      font-size: 16px;
+      margin-top: 30px;
+      background-color: #ccc;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
-  <h1>Controlar Celdas Peltier</h1>
-  <button class="cold" onclick="sendCommand('f')">Frío</button>
-  <button class="hot" onclick="sendCommand('c')">Calor</button>
-  <button class="off" onclick="sendCommand('0')">Apagar</button>
+  <h1>Enfriador de Médula BLE</h1>
+
+  <div>
+    <label for="sliderFrio" class="label">Frío: <span id="valFrio">0</span>%</label><br>
+    <input type="range" id="sliderFrio" min="0" max="100" value="0" step="10" onchange="updateFrio()">
+  </div>
+
+  <div>
+    <label for="sliderCalor" class="label">Calor: <span id="valCalor">0</span>%</label><br>
+    <input type="range" id="sliderCalor" min="0" max="100" value="0" step="10" onchange="updateCalor()">
+  </div>
+
+  <button onclick="apagar()">Apagar</button>
 
   <script>
     let bluetoothDevice;
@@ -35,7 +55,7 @@
         txCharacteristic = await service.getCharacteristic('6e400002-b5a3-f393-e0a9-e50e24dcca9e');
         alert("¡Conectado al ESP32!");
       } catch (error) {
-        alert("Error de conexión: " + error);
+        alert("Error de conexión BLE: " + error);
       }
     }
 
@@ -43,6 +63,30 @@
       if (!txCharacteristic) await connectBLE();
       const encoder = new TextEncoder();
       await txCharacteristic.writeValue(encoder.encode(cmd));
+    }
+
+    function updateFrio() {
+      let val = document.getElementById("sliderFrio").value;
+      document.getElementById("valFrio").innerText = val;
+      document.getElementById("sliderCalor").value = 0;
+      document.getElementById("valCalor").innerText = 0;
+      sendCommand("f" + val);
+    }
+
+    function updateCalor() {
+      let val = document.getElementById("sliderCalor").value;
+      document.getElementById("valCalor").innerText = val;
+      document.getElementById("sliderFrio").value = 0;
+      document.getElementById("valFrio").innerText = 0;
+      sendCommand("c" + val);
+    }
+
+    function apagar() {
+      document.getElementById("sliderFrio").value = 0;
+      document.getElementById("sliderCalor").value = 0;
+      document.getElementById("valFrio").innerText = 0;
+      document.getElementById("valCalor").innerText = 0;
+      sendCommand("0");
     }
   </script>
 </body>
