@@ -1,1 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Control Peltier BLE</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial; text-align: center; background: #f5f5f5; padding: 40px; }
+    button {
+      padding: 15px 30px; font-size: 18px; margin: 10px;
+      border-radius: 10px; border: none; cursor: pointer;
+    }
+    .cold { background-color: #4da6ff; }
+    .hot { background-color: #ff4d4d; }
+    .off { background-color: #bbb; }
+  </style>
+</head>
+<body>
+  <h1>Controlar Celdas Peltier</h1>
+  <button class="cold" onclick="sendCommand('f')">Frío</button>
+  <button class="hot" onclick="sendCommand('c')">Calor</button>
+  <button class="off" onclick="sendCommand('0')">Apagar</button>
 
+  <script>
+    let bluetoothDevice;
+    let txCharacteristic;
+
+    async function connectBLE() {
+      try {
+        bluetoothDevice = await navigator.bluetooth.requestDevice({
+          filters: [{ name: 'PeltierBLE' }],
+          optionalServices: ['6e400001-b5a3-f393-e0a9-e50e24dcca9e']
+        });
+        const server = await bluetoothDevice.gatt.connect();
+        const service = await server.getPrimaryService('6e400001-b5a3-f393-e0a9-e50e24dcca9e');
+        txCharacteristic = await service.getCharacteristic('6e400002-b5a3-f393-e0a9-e50e24dcca9e');
+        alert("¡Conectado al ESP32!");
+      } catch (error) {
+        alert("Error de conexión: " + error);
+      }
+    }
+
+    async function sendCommand(cmd) {
+      if (!txCharacteristic) await connectBLE();
+      const encoder = new TextEncoder();
+      await txCharacteristic.writeValue(encoder.encode(cmd));
+    }
+  </script>
+</body>
+</html>
