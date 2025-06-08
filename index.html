@@ -1,92 +1,105 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <title>Control Enfriador Médula</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      background-color: #f0f4f8;
-      padding-top: 50px;
-    }
-    h1 {
-      color: #333;
-    }
-    button {
-      font-size: 20px;
-      padding: 15px 30px;
-      margin: 20px;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
-      transition: background-color 0.3s;
-    }
-    #btnFrio {
-      background-color: #00bfff;
-      color: white;
-    }
-    #btnFrio:hover {
-      background-color: #0099cc;
-    }
-    #btnCalor {
-      background-color: #ff4500;
-      color: white;
-    }
-    #btnCalor:hover {
-      background-color: #cc3700;
-    }
-    #btnStop {
-      background-color: #444;
-      color: white;
-    }
-    #btnStop:hover {
-      background-color: #222;
-    }
-  </style>
-</head>
-<body>
-  <h1>Enfriador de Médula - Control BLE</h1>
-  <button id="btnConnect">🔗 Conectar</button><br>
-  <button id="btnFrio">🧊 Activar Frío</button>
-  <button id="btnCalor">🔥 Activar Calor</button>
-  <button id="btnStop">⏹️ Apagar</button>
-
-  <script>
-    let device;
-    let characteristic;
-
-    async function connect() {
-      try {
-        device = await navigator.bluetooth.requestDevice({
-          filters: [{ name: "PeltierBLE" }],
-          optionalServices: ["6e400001-b5a3-f393-e0a9-e50e24dcca9e"]
-        });
-
-        const server = await device.gatt.connect();
-        const service = await server.getPrimaryService("6e400001-b5a3-f393-e0a9-e50e24dcca9e");
-        characteristic = await service.getCharacteristic("6e400002-b5a3-f393-e0a9-e50e24dcca9e");
-        alert("✅ ¡Conectado con éxito!");
-      } catch (error) {
-        console.error(error);
-        alert("❌ Error al conectar");
+  <head>
+    <meta charset="utf-8" />
+    <title>Control Peltier BLE</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        padding: 30px;
+        background: #f0f0f0;
       }
-    }
-
-    function sendCommand(cmd) {
-      if (!characteristic) {
-        alert("Conéctate primero");
-        return;
+      h1 {
+        color: #444;
       }
-      const data = new TextEncoder().encode(cmd);
-      characteristic.writeValue(data);
-    }
+      .slider-container {
+        margin: 30px 0;
+      }
+      input[type="range"] {
+        width: 300px;
+      }
+      .label {
+        font-size: 18px;
+        margin-top: 10px;
+      }
+      button {
+        padding: 10px 20px;
+        font-size: 16px;
+        margin: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>❄️🔥 Control de Placas Peltier</h1>
 
-    document.getElementById("btnConnect").addEventListener("click", connect);
-    document.getElementById("btnFrio").addEventListener("click", () => sendCommand("f"));
-    document.getElementById("btnCalor").addEventListener("click", () => sendCommand("c"));
-    document.getElementById("btnStop").addEventListener("click", () => sendCommand("0"));
-  </script>
-</body>
+    <button onclick="connect()">🔌 Conectar Bluetooth</button>
+
+    <div class="slider-container">
+      <h2>Frío</h2>
+      <input type="range" id="sliderFrio" min="0" max="100" step="10" value="0" />
+      <div class="label" id="valorFrio">0%</div>
+    </div>
+
+    <div class="slider-container">
+      <h2>Calor</h2>
+      <input type="range" id="sliderCalor" min="0" max="100" step="10" value="0" />
+      <div class="label" id="valorCalor">0%</div>
+    </div>
+
+    <button onclick="apagar()">🛑 Apagar todo</button>
+
+    <script>
+      let device, characteristic;
+
+      async function connect() {
+        try {
+          device = await navigator.bluetooth.requestDevice({
+            filters: [{ name: "ESP32" }],
+            optionalServices: ["12345678-1234-1234-1234-123456789abc"],
+          });
+          const server = await device.gatt.connect();
+          const service = await server.getPrimaryService("12345678-1234-1234-1234-123456789abc");
+          characteristic = await service.getCharacteristic("abcdefab-1234-5678-9abc-abcdefabcdef");
+          alert("✅ Conectado al ESP32");
+        } catch (error) {
+          alert("❌ Error al conectar: " + error);
+        }
+      }
+
+      function enviarComando(comando) {
+        if (characteristic) {
+          const encoder = new TextEncoder();
+          characteristic.writeValue(encoder.encode(comando));
+        }
+      }
+
+      const sliderFrio = document.getElementById("sliderFrio");
+      const sliderCalor = document.getElementById("sliderCalor");
+
+      sliderFrio.addEventListener("input", () => {
+        const valor = sliderFrio.value;
+        document.getElementById("valorFrio").innerText = valor + "%";
+        sliderCalor.value = 0;
+        document.getElementById("valorCalor").innerText = "0%";
+        enviarComando("F" + valor);
+      });
+
+      sliderCalor.addEventListener("input", () => {
+        const valor = sliderCalor.value;
+        document.getElementById("valorCalor").innerText = valor + "%";
+        sliderFrio.value = 0;
+        document.getElementById("valorFrio").innerText = "0%";
+        enviarComando("C" + valor);
+      });
+
+      function apagar() {
+        sliderFrio.value = 0;
+        sliderCalor.value = 0;
+        document.getElementById("valorFrio").innerText = "0%";
+        document.getElementById("valorCalor").innerText = "0%";
+        enviarComando("0");
+      }
+    </script>
+  </body>
 </html>
